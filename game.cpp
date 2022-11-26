@@ -7,23 +7,21 @@ const int SCREEN_HEIGHT = 680;
 const int XMARGIN = SCREEN_WIDTH - 10;
 const int YMARGIN = SCREEN_HEIGHT - 10;
 
-namespace Application
+namespace Breakout
 {
    SDL_Window *window = NULL;
-   SDL_Texture *ftexture = NULL;
    SDL_Rect ball;
-   SDL_Surface *text = NULL;
+
    int ballDim[2] = {10, 10};
-   int grid[100];
-   int positions[50];
-   int direction = 0;
+   int grid[400];
+   int stickPositions[50];
    float velocity[2] = {.8, -.8};
    float ballPos[2];
    int score = 0;
 
    void maintainStick(SDL_Renderer *renderer, bool first = false, bool move = false, bool changed = false, bool direction = false);
 
-   void createGrid(SDL_Renderer *renderer, bool fromStick = false, int rows = 10, int cols = 10)
+   void createGrid(SDL_Renderer *renderer, bool fromStick = false, int rows = 20, int cols = 20)
    {
       SDL_Rect rect;
 
@@ -48,7 +46,7 @@ namespace Application
                rect.x = (SCREEN_WIDTH / rows) * (x - 1);
                rect.y = ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
                rect.w = (SCREEN_WIDTH / rows);
-               rect.h = (SCREEN_HEIGHT / 3) / (cols * 3);
+               rect.h = (SCREEN_HEIGHT / 2) / (cols);
                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                SDL_RenderFillRect(renderer, &rect);
             }
@@ -60,7 +58,7 @@ namespace Application
       SDL_RenderPresent(renderer);
    }
 
-   void checkCollison(SDL_Renderer *renderer, int rows = 10, int cols = 10)
+   void checkCollison(SDL_Renderer *renderer, int rows = 20, int cols = 20)
    {
       int count = 0;
       for (int y = 1; y <= rows; y++)
@@ -93,10 +91,10 @@ namespace Application
          }
       }
       int pos = 1;
-      int row = sizeof(positions) / sizeof(int);
+      int row = sizeof(stickPositions) / sizeof(int);
       for (int i = 0; i < row; i++)
       {
-         if (positions[i] == 1)
+         if (stickPositions[i] == 1)
          {
             pos = i;
             break;
@@ -149,10 +147,10 @@ namespace Application
       SDL_RenderFillRect(renderer, &rect);
 
       int pos = 1;
-      int rows = sizeof(positions) / sizeof(int);
+      int rows = sizeof(stickPositions) / sizeof(int);
       for (int i = 0; i < rows; i++)
       {
-         if (positions[i] == 1)
+         if (stickPositions[i] == 1)
          {
             pos = i;
             break;
@@ -164,14 +162,14 @@ namespace Application
          {
             if (pos - 2 >= 0)
             {
-               positions[pos] = 0;
-               positions[pos - 2] = 1;
+               stickPositions[pos] = 0;
+               stickPositions[pos - 2] = 1;
                pos -= 2;
             }
             else if ((pos - 1 >= 0))
             {
-               positions[pos] = 0;
-               positions[pos - 1] = 1;
+               stickPositions[pos] = 0;
+               stickPositions[pos - 1] = 1;
                pos -= 1;
             }
          }
@@ -179,14 +177,14 @@ namespace Application
          {
             if (pos + 2 < rows)
             {
-               positions[pos] = 0;
-               positions[pos + 2] = 1;
+               stickPositions[pos] = 0;
+               stickPositions[pos + 2] = 1;
                pos += 2;
             }
             if (pos + 1 < rows)
             {
-               positions[pos] = 0;
-               positions[pos + 1] = 1;
+               stickPositions[pos] = 0;
+               stickPositions[pos + 1] = 1;
                pos += 1;
             }
          }
@@ -216,79 +214,65 @@ namespace Application
    void driver()
    {
       // Initialize SDL
-      if (SDL_Init(SDL_INIT_VIDEO) < 0)
+      SDL_Init(SDL_INIT_VIDEO);
+      // Create window
+      window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+
+      // Fill array
+      for (int i = 0; i < sizeof(grid) / sizeof(int); i++)
+         grid[i] = 1;
+      int middle = (sizeof(stickPositions) / sizeof(int)) / 2;
+      for (int i = 0; i < sizeof(stickPositions) / sizeof(int); i++)
       {
-         std::cout << "SDL could not initialize! SDL_Error " << SDL_GetError() << "\n";
-      }
-      else
-      {
-         // Create window
-         window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-         if (window == NULL)
-         {
-            std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
-         }
+         if (i != middle - 1)
+            stickPositions[i] = 0;
          else
+            stickPositions[i] = 1;
+      }
+
+      // create dot
+      int rows = (sizeof(stickPositions) / sizeof(int));
+
+      ball.x = (SCREEN_WIDTH / 2);
+      ball.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 21 + ballDim[1]));
+      ball.h = ballDim[1];
+      ball.w = ballDim[0];
+      ballPos[0] = ball.x;
+      ballPos[1] = ball.y;
+
+      SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+      maintainStick(renderer);
+
+      // Hack to get window to stay up
+      SDL_Event e;
+      bool quit = false;
+      while (quit == false)
+      {
+         while (SDL_PollEvent(&e))
          {
-            // Fill array
-            for (int i = 0; i < sizeof(grid) / sizeof(int); i++)
-               grid[i] = 1;
-            int middle = (sizeof(positions) / sizeof(int)) / 2;
-            for (int i = 0; i < sizeof(positions) / sizeof(int); i++)
+            if (e.type == SDL_QUIT)
             {
-               if (i != middle - 1)
-                  positions[i] = 0;
-               else
-                  positions[i] = 1;
+               quit = true;
             }
-
-            // create dot
-            int rows = (sizeof(positions) / sizeof(int));
-
-            ball.x = (SCREEN_WIDTH / 2);
-            ball.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 21 + ballDim[1]));
-            ball.h = ballDim[1];
-            ball.w = ballDim[0];
-            ballPos[0] = ball.x;
-            ballPos[1] = ball.y;
-
-            SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-            maintainStick(renderer);
-
-            // Hack to get window to stay up
-            SDL_Event e;
-            bool quit = false;
-            while (quit == false)
+            else if (e.type == SDL_KEYDOWN)
             {
-               while (SDL_PollEvent(&e))
-               {
-                  if (e.type == SDL_QUIT)
-                  {
-                     quit = true;
-                  }
-                  else if (e.type == SDL_KEYDOWN)
-                  {
-                     if (e.key.keysym.sym == SDLK_a)
-                        maintainStick(renderer, false, false, true, false);
-                     else if (e.key.keysym.sym == SDLK_d)
-                        maintainStick(renderer, false, false, true, true);
-                  }
-               }
-               maintainStick(renderer, false, true);
+               if (e.key.keysym.sym == SDLK_a)
+                  maintainStick(renderer, false, false, true, false);
+               else if (e.key.keysym.sym == SDLK_d)
+                  maintainStick(renderer, false, false, true, true);
             }
          }
+         maintainStick(renderer, false, true);
       }
-      // Destroy window
-      SDL_DestroyWindow(window);
 
-      // Quit SDL subsystems
+      SDL_DestroyWindow(window);
       SDL_Quit();
    }
 }
 
 int main(int argc, char *args[])
 {
-   Application::driver();
+   Breakout::driver();
    return 0;
 }
