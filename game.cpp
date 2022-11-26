@@ -1,7 +1,6 @@
 using namespace std;
 #include <iostream>
 #include <SDL2/SDL.h>
-#include <array>
 
 const int SCREEN_WIDTH = 680;
 const int SCREEN_HEIGHT = 680;
@@ -46,9 +45,9 @@ namespace Application
          {
             if (grid[count] == 1)
             {
-               rect.x = (SCREEN_WIDTH - XMARGIN) + ((SCREEN_WIDTH - XMARGIN) / 2) + ((x - 1) * ((SCREEN_WIDTH) / rows));
-               rect.y = (SCREEN_HEIGHT - YMARGIN) + ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
-               rect.w = (SCREEN_WIDTH) / (rows * 2);
+               rect.x = (SCREEN_WIDTH / rows) * (x - 1);
+               rect.y = ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
+               rect.w = (SCREEN_WIDTH / rows);
                rect.h = (SCREEN_HEIGHT / 3) / (cols * 3);
                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                SDL_RenderFillRect(renderer, &rect);
@@ -70,9 +69,9 @@ namespace Application
          {
             if (grid[count] == 1)
             {
-               int xpos = (SCREEN_WIDTH - XMARGIN) + ((SCREEN_WIDTH - XMARGIN) / 2) + ((x - 1) * ((SCREEN_WIDTH) / rows));
-               int ypos = (SCREEN_HEIGHT - YMARGIN) + ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
-               int xw = (SCREEN_WIDTH) / (rows * 2);
+               int xpos = (SCREEN_WIDTH / rows) * (x - 1);
+               int ypos = ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
+               int xw = (SCREEN_WIDTH / rows);
                int yh = (SCREEN_HEIGHT / 3) / (cols * 3);
                if (ball.x >= xpos && ball.x <= xpos + xw && ball.y >= ypos && ball.y <= ypos + yh)
                {
@@ -85,7 +84,7 @@ namespace Application
                   ballPos[1] += velocity[1];
                   ball.x = (int)(ballPos[0]);
                   ball.y = (int)(ballPos[1]);
-                  
+
                   maintainStick(renderer);
                   return;
                }
@@ -231,7 +230,6 @@ namespace Application
          }
          else
          {
-
             // Fill array
             for (int i = 0; i < sizeof(grid) / sizeof(int); i++)
                grid[i] = 1;
