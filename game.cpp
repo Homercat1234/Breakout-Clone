@@ -12,12 +12,11 @@ namespace Breakout
    SDL_Window *window = NULL;
    SDL_Rect ball;
 
-   int ballDim[2] = {10, 10};
+   int ballDim[2] = {12, 12};
    int grid[400];
    int stickPositions[50];
    float velocity[2] = {.8, -.8};
    float ballPos[2];
-   int score = 0;
 
    void maintainStick(SDL_Renderer *renderer, bool first = false, bool move = false, bool changed = false, bool direction = false);
 
@@ -73,16 +72,14 @@ namespace Breakout
                int yh = (SCREEN_HEIGHT / 3) / (cols * 3);
                if (ball.x >= xpos && ball.x <= xpos + xw && ball.y >= ypos && ball.y <= ypos + yh)
                {
-                  grid[count] = 0;
-                  score++;
-
                   velocity[0] = -velocity[0];
                   velocity[1] = -velocity[1];
                   ballPos[0] += velocity[0];
                   ballPos[1] += velocity[1];
                   ball.x = (int)(ballPos[0]);
                   ball.y = (int)(ballPos[1]);
-
+                  
+                  grid[count] = 0;
                   maintainStick(renderer);
                   return;
                }
@@ -136,6 +133,7 @@ namespace Breakout
    {
       if (!first)
          SDL_RenderClear(renderer);
+
       SDL_Rect rect;
 
       rect.x = 0;
@@ -189,14 +187,6 @@ namespace Breakout
             }
          }
       }
-      rect.x = ((SCREEN_WIDTH / rows) * pos);
-      rect.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 20));
-      rect.w = (SCREEN_WIDTH / 10);
-      rect.h = (SCREEN_HEIGHT / 3) / (10 * 3);
-
-      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-      SDL_RenderFillRect(renderer, &rect);
-
       if (first)
       {
          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -208,6 +198,15 @@ namespace Breakout
          SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
          SDL_RenderFillRect(renderer, &ball);
       }
+
+      rect.x = ((SCREEN_WIDTH / rows) * pos);
+      rect.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 20));
+      rect.w = (SCREEN_WIDTH / 10);
+      rect.h = (SCREEN_HEIGHT / 3) / (10 * 3);
+
+      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+      SDL_RenderFillRect(renderer, &rect);
+
       createGrid(renderer, true);
    }
 
