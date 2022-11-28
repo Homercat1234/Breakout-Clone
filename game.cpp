@@ -2,15 +2,16 @@ using namespace std;
 #include <iostream>
 #include <SDL2/SDL.h>
 
-const int SCREEN_WIDTH = 680;
-const int SCREEN_HEIGHT = 680;
-const int XMARGIN = SCREEN_WIDTH - 10;
-const int YMARGIN = SCREEN_HEIGHT - 10;
-
 namespace Breakout
 {
    SDL_Window *window = NULL;
+   SDL_Renderer *renderer = NULL;
    SDL_Rect ball;
+
+   const int SCREEN_WIDTH = 680;
+   const int SCREEN_HEIGHT = 680;
+   const int XMARGIN = SCREEN_WIDTH - 10;
+   const int YMARGIN = SCREEN_HEIGHT - 10;
 
    int ballDim[2] = {12, 12};
    int grid[400];
@@ -18,22 +19,12 @@ namespace Breakout
    float velocity[2] = {.8, -.8};
    float ballPos[2];
 
-   void maintainStick(SDL_Renderer *renderer, bool first = false, bool move = false, bool changed = false, bool direction = false);
+   void gameLoop(bool changed = false, bool right = true);
+   void maintainStick(bool changed = false, bool right = true);
 
-   void createGrid(SDL_Renderer *renderer, bool fromStick = false, int rows = 20, int cols = 20)
+   void createGrid(int rows = 20, int cols = 20)
    {
       SDL_Rect rect;
-
-      rect.x = 0;
-      rect.y = 0;
-      rect.w = SCREEN_WIDTH;
-      rect.h = SCREEN_HEIGHT;
-      if (!fromStick)
-      {
-         SDL_RenderClear(renderer);
-         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-         SDL_RenderFillRect(renderer, &rect);
-      }
 
       int count = 0;
       for (int y = 1; y <= rows; y++)
@@ -52,13 +43,28 @@ namespace Breakout
             count++;
          }
       }
-      if (!fromStick)
-         maintainStick(renderer);
-      SDL_RenderPresent(renderer);
    }
 
-   void checkCollison(SDL_Renderer *renderer, int rows = 20, int cols = 20)
+   void checkCollison(int rows = 20, int cols = 20)
    {
+      // Checking collison with the sides of the window
+      ballPos[0] += velocity[0];
+      if (ballPos[0] < 0 || ballPos[0] + ball.w > SCREEN_WIDTH)
+      {
+         velocity[0] = -velocity[0];
+         ballPos[0] += velocity[0] * 2;
+      }
+      ball.x = (int)(ballPos[0]);
+
+      ballPos[1] += velocity[1];
+      if (ballPos[1] < 0 || ballPos[1] + ball.h > SCREEN_HEIGHT)
+      {
+         velocity[1] = -velocity[1];
+         ballPos[1] += velocity[1] * 2;
+      }
+      ball.y = (int)(ballPos[1]);
+
+      // Check collison with  grid
       int count = 0;
       for (int y = 1; y <= rows; y++)
       {
@@ -78,15 +84,16 @@ namespace Breakout
                   ballPos[1] += velocity[1];
                   ball.x = (int)(ballPos[0]);
                   ball.y = (int)(ballPos[1]);
-                  
+
                   grid[count] = 0;
-                  maintainStick(renderer);
                   return;
                }
             }
             count++;
          }
       }
+
+      // Check collison with stick
       int pos = 1;
       int row = sizeof(stickPositions) / sizeof(int);
       for (int i = 0; i < row; i++)
@@ -104,48 +111,21 @@ namespace Breakout
       if (ball.x >= xpos && ball.x <= xpos + xw && ball.y >= ypos && ball.y <= ypos + yh)
       {
          velocity[1] = -velocity[1];
-         maintainStick(renderer);
          return;
       }
+
+      // Render ball
+      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+      SDL_RenderFillRect(renderer, &ball);
+
    }
 
-   void movement(SDL_Renderer *renderer)
+   void maintainStick(bool changed, bool right)
    {
-      ballPos[0] += velocity[0];
-      if (ballPos[0] < 0 || ballPos[0] + ball.w > SCREEN_WIDTH)
-      {
-         velocity[0] = -velocity[0];
-         ballPos[0] += velocity[0] * 2;
-      }
-      ball.x = (int)(ballPos[0]);
-
-      ballPos[1] += velocity[1];
-      if (ballPos[1] < 0 || ballPos[1] + ball.h > SCREEN_HEIGHT)
-      {
-         velocity[1] = -velocity[1];
-         ballPos[1] += velocity[1] * 2;
-      }
-      ball.y = (int)(ballPos[1]);
-      checkCollison(renderer);
-   }
-
-   void maintainStick(SDL_Renderer *renderer, bool first, bool move, bool changed, bool direction)
-   {
-      if (!first)
-         SDL_RenderClear(renderer);
-
       SDL_Rect rect;
-
-      rect.x = 0;
-      rect.y = 0;
-      rect.w = SCREEN_WIDTH;
-      rect.h = SCREEN_HEIGHT;
-      SDL_RenderClear(renderer);
-      SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-      SDL_RenderFillRect(renderer, &rect);
-
       int pos = 1;
       int rows = sizeof(stickPositions) / sizeof(int);
+
       for (int i = 0; i < rows; i++)
       {
          if (stickPositions[i] == 1)
@@ -156,7 +136,7 @@ namespace Breakout
       }
       if (changed)
       {
-         if (!direction)
+         if (!right)
          {
             if (pos - 2 >= 0)
             {
@@ -187,17 +167,6 @@ namespace Breakout
             }
          }
       }
-      if (first)
-      {
-         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-         SDL_RenderFillRect(renderer, &ball);
-      }
-      if (move)
-      {
-         movement(renderer);
-         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-         SDL_RenderFillRect(renderer, &ball);
-      }
 
       rect.x = ((SCREEN_WIDTH / rows) * pos);
       rect.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 20));
@@ -206,8 +175,26 @@ namespace Breakout
 
       SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
       SDL_RenderFillRect(renderer, &rect);
+   }
 
-      createGrid(renderer, true);
+   void gameLoop(bool changed, bool right)
+   {
+      SDL_RenderClear(renderer);
+
+      SDL_Rect rect;
+      rect.x = 0;
+      rect.y = 0;
+      rect.w = SCREEN_WIDTH;
+      rect.h = SCREEN_HEIGHT;
+
+      SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+      SDL_RenderFillRect(renderer, &rect);
+
+      maintainStick(changed, right);
+      checkCollison();
+      createGrid();
+
+      SDL_RenderPresent(renderer);
    }
 
    void driver()
@@ -239,9 +226,7 @@ namespace Breakout
       ballPos[0] = ball.x;
       ballPos[1] = ball.y;
 
-      SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-      maintainStick(renderer);
+      renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
       // Hack to get window to stay up
       SDL_Event e;
@@ -257,12 +242,12 @@ namespace Breakout
             else if (e.type == SDL_KEYDOWN)
             {
                if (e.key.keysym.sym == SDLK_a)
-                  maintainStick(renderer, false, false, true, false);
+                  gameLoop(true, false);
                else if (e.key.keysym.sym == SDLK_d)
-                  maintainStick(renderer, false, false, true, true);
+                  gameLoop(true);
             }
          }
-         maintainStick(renderer, false, true);
+         gameLoop();
       }
 
       SDL_DestroyWindow(window);
