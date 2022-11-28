@@ -1,6 +1,6 @@
 using namespace std;
-#include <iostream>
 #include <SDL2/SDL.h>
+#include <ctime>
 
 namespace Breakout
 {
@@ -10,13 +10,12 @@ namespace Breakout
 
    const int SCREEN_WIDTH = 680;
    const int SCREEN_HEIGHT = 680;
-   const int XMARGIN = SCREEN_WIDTH - 10;
-   const int YMARGIN = SCREEN_HEIGHT - 10;
+   const int STICK_OFFSET = 10;
 
    int ballDim[2] = {12, 12};
    int grid[400];
    int stickPositions[50];
-   float velocity[2] = {.8, -.8};
+   float velocity[2] = {.9, -.9};
    float ballPos[2];
 
    void gameLoop(bool changed = false, bool right = true);
@@ -31,13 +30,20 @@ namespace Breakout
       {
          for (int x = 1; x <= cols; x++)
          {
-            if (grid[count] == 1)
+            if (grid[count] > 0)
             {
                rect.x = (SCREEN_WIDTH / rows) * (x - 1);
                rect.y = ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
                rect.w = (SCREEN_WIDTH / rows);
                rect.h = (SCREEN_HEIGHT / 2) / (cols);
-               SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+               if (grid[count] == 1)
+               {
+                  SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+               }
+               else
+               {
+                  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+               }
                SDL_RenderFillRect(renderer, &rect);
             }
             count++;
@@ -70,7 +76,7 @@ namespace Breakout
       {
          for (int x = 1; x <= cols; x++)
          {
-            if (grid[count] == 1)
+            if (grid[count] > 0)
             {
                int xpos = (SCREEN_WIDTH / rows) * (x - 1);
                int ypos = ((y - 1) * ((SCREEN_HEIGHT / 2) / cols));
@@ -85,7 +91,7 @@ namespace Breakout
                   ball.x = (int)(ballPos[0]);
                   ball.y = (int)(ballPos[1]);
 
-                  grid[count] = 0;
+                  grid[count] = grid[count] - 1;
                   return;
                }
             }
@@ -105,7 +111,7 @@ namespace Breakout
          }
       }
       int xpos = ((SCREEN_WIDTH / row) * pos);
-      int ypos = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 20));
+      int ypos = (SCREEN_HEIGHT - (STICK_OFFSET + 20));
       int xw = (SCREEN_WIDTH / 10);
       int yh = (SCREEN_HEIGHT / 3) / (10 * 3);
       if (ball.x >= xpos && ball.x <= xpos + xw && ball.y >= ypos && ball.y <= ypos + yh)
@@ -117,7 +123,6 @@ namespace Breakout
       // Render ball
       SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
       SDL_RenderFillRect(renderer, &ball);
-
    }
 
    void maintainStick(bool changed, bool right)
@@ -169,7 +174,7 @@ namespace Breakout
       }
 
       rect.x = ((SCREEN_WIDTH / rows) * pos);
-      rect.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 20));
+      rect.y = (SCREEN_HEIGHT - (STICK_OFFSET + 20));
       rect.w = (SCREEN_WIDTH / 10);
       rect.h = (SCREEN_HEIGHT / 3) / (10 * 3);
 
@@ -205,8 +210,13 @@ namespace Breakout
       window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
       // Fill array
+      srand(time(NULL));
+
+      int max = 2;
+      int min = 1;
       for (int i = 0; i < sizeof(grid) / sizeof(int); i++)
-         grid[i] = 1;
+         grid[i] = 1 + (rand() % 2);
+
       int middle = (sizeof(stickPositions) / sizeof(int)) / 2;
       for (int i = 0; i < sizeof(stickPositions) / sizeof(int); i++)
       {
@@ -220,7 +230,7 @@ namespace Breakout
       int rows = (sizeof(stickPositions) / sizeof(int));
 
       ball.x = (SCREEN_WIDTH / 2);
-      ball.y = (SCREEN_HEIGHT - (SCREEN_HEIGHT - YMARGIN + 21 + ballDim[1]));
+      ball.y = (SCREEN_HEIGHT - (STICK_OFFSET + 21 + ballDim[1]));
       ball.h = ballDim[1];
       ball.w = ballDim[0];
       ballPos[0] = ball.x;
