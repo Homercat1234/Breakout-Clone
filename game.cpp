@@ -1,12 +1,15 @@
 using namespace std;
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <ctime>
+#include <string>
 
 namespace Breakout
 {
    SDL_Window *window = NULL;
    SDL_Renderer *renderer = NULL;
    SDL_Rect ball;
+   SDL_Rect rect;
 
    const int SCREEN_WIDTH = 680;
    const int SCREEN_HEIGHT = 680;
@@ -18,13 +21,13 @@ namespace Breakout
    float velocity[2] = {.9, -.9};
    float ballPos[2];
 
+   int score = 0;
+
    void gameLoop(bool changed = false, bool right = true);
    void maintainStick(bool changed = false, bool right = true);
 
    void createGrid(int rows = 20, int cols = 20)
    {
-      SDL_Rect rect;
-
       int count = 0;
       for (int y = 1; y <= rows; y++)
       {
@@ -54,6 +57,7 @@ namespace Breakout
    void checkCollison(int rows = 20, int cols = 20)
    {
       // Checking collison with the sides of the window
+
       ballPos[0] += velocity[0];
       if (ballPos[0] < 0 || ballPos[0] + ball.w > SCREEN_WIDTH)
       {
@@ -63,6 +67,8 @@ namespace Breakout
       ball.x = (int)(ballPos[0]);
 
       ballPos[1] += velocity[1];
+      if (ballPos[1] + ball.h > SCREEN_HEIGHT) // Reduce score if miss
+         score--;
       if (ballPos[1] < 0 || ballPos[1] + ball.h > SCREEN_HEIGHT)
       {
          velocity[1] = -velocity[1];
@@ -92,6 +98,10 @@ namespace Breakout
                   ball.y = (int)(ballPos[1]);
 
                   grid[count] = grid[count] - 1;
+                  if (grid[count] == 0)
+                     score += 2;
+                  else
+                     score++;
                   return;
                }
             }
@@ -127,7 +137,6 @@ namespace Breakout
 
    void maintainStick(bool changed, bool right)
    {
-      SDL_Rect rect;
       int pos = 1;
       int rows = sizeof(stickPositions) / sizeof(int);
 
@@ -182,11 +191,28 @@ namespace Breakout
       SDL_RenderFillRect(renderer, &rect);
    }
 
+   void displayScore()
+   {
+      TTF_Font *font = TTF_OpenFont("DejaVuSansMono.ttf", 25);
+      SDL_Surface *surface = TTF_RenderText_Solid(font,
+                                                  std::to_string(score).c_str(), {0, 0, 0});
+
+      rect.w = 50;
+      rect.h = 50;
+      rect.x = SCREEN_WIDTH - 50;
+      rect.y = SCREEN_HEIGHT - 50;
+
+      SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+      SDL_RenderCopy(renderer, texture, NULL, &rect);
+      SDL_DestroyTexture(texture);
+      SDL_FreeSurface(surface);
+      TTF_CloseFont(font);
+   }
+
    void gameLoop(bool changed, bool right)
    {
       SDL_RenderClear(renderer);
 
-      SDL_Rect rect;
       rect.x = 0;
       rect.y = 0;
       rect.w = SCREEN_WIDTH;
@@ -199,6 +225,8 @@ namespace Breakout
       checkCollison();
       createGrid();
 
+      displayScore();
+
       SDL_RenderPresent(renderer);
    }
 
@@ -206,6 +234,7 @@ namespace Breakout
    {
       // Initialize SDL
       SDL_Init(SDL_INIT_VIDEO);
+      TTF_Init();
       // Create window
       window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
@@ -261,6 +290,7 @@ namespace Breakout
       }
 
       SDL_DestroyWindow(window);
+      TTF_Quit();
       SDL_Quit();
    }
 }
